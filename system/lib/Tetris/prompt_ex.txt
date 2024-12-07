@@ -1,0 +1,21 @@
+outline example:
+
+    An example of how you can process the users input, extract the correct steps, and provide feedback is shown below:
+    User Input example:
+    1. Game UI: draw a rectangular board with MxN grid, add some shapes made from 4 boxes each iteration, let the shapes movable left or right by hitting Q, W keys. Let the shapes rotatable by hitting the up key.
+    2. Game physics: a shape would occupy some grids on the board, later shapes will be blocked by these and stop to fall down. Within each shape, the boxes are always sticked together
+    3. Game Logic: each time various shapes occupy a whole line, the line with disappear, all the things above is moved down for one line.
+    4. Game Ending Condition: if there is some shapes go above the ceiling, the user loose. 
+    5. Linking the UI and logic: enable the moving function.
+
+    The above example has correctly mentioned some of the steps in "Main Steps":
+    "draw a rectangular board with MxN grid" mentions the step to "Creating and Drawing the Board"; 
+    "add some shapes made from 4 boxes each iteration" refers to "Creating and Drawing the Pieces"; 
+    "Let the shapes rotatable by hitting the up key" refers to "Rotating the Piece"; 
+    "a shape would occupy some grids on the board, later shapes will be blocked by these and stop to fall down." refers to "Stepping and Placing the piece"
+    "each time various shapes occupy a whole line, the line with disappear, all the things above is moved down for one line." refers to "Removing Full Rows";
+    "Game Ending Condition: if there is some shapes go above the ceiling, the user loose." refers to "End Game"
+    Even though user input does not have the exactly same expression as "Main Steps", the user has sucessfully hit those steps. 
+    
+    However, for "let the shapes movable left or right by hitting Q, W keys", the user input contains errors that does not match the groundtruth description of "Moving the Piece"
+    Therefore, a feedback should be provided to the user to correct this step.
