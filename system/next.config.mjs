@@ -2,12 +2,12 @@
 const nextConfig = {
 
   eslint: {
-    // 在构建时忽略 ESLint 校验
+    // Ignore ESLint validation during build
     ignoreDuringBuilds: true,
 
   },
   typescript: {
-    // 忽略 TypeScript 错误
+    // Ignore TypeScript errors
     ignoreBuildErrors: true,
   },
 };
