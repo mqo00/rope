@@ -1,0 +1,151 @@
+{
+  "gameTitle": "Connect 4",
+  "baseExplanations": [
+    {
+      "name": "root",
+      "explanation": "The root window for the Tkinter application."
+    },
+    {
+      "name": "width",
+      "explanation": "The number of columns in the Connect 4 board."
+    },
+    {
+      "name": "height",
+      "explanation": "The number of rows in the Connect 4 board."
+    },
+    {
+      "name": "cell_size",
+      "explanation": "The size of each cell in the Connect 4 board."
+    },
+    {
+      "name": "player_colors",
+      "explanation": "A list of colors representing the two players."
+    },
+    {
+      "name": "current_player",
+      "explanation": "The index of the current player (0 for player 1, 1 for player 2)."
+    },
+    {
+      "name": "canvas",
+      "explanation": "The canvas on which the game board is drawn."
+    },
+    {
+      "name": "reset_button",
+      "explanation": "The button to restart the game."
+    },
+    {
+      "name": "__init__(self, root)",
+      "explanation": "Initializes the game, sets up the board, and binds events."
+    },
+    {
+      "name": "draw_board(self)",
+      "explanation": "Draws the entire Connect 4 board with empty cells."
+    },
+    {
+      "name": "initialize_board(self)",
+      "explanation": "Initializes the board to be empty and sets the current player."
+    },
+    {
+      "name": "update_turn_display(self)",
+      "explanation": "Updates the window title to show the current player's turn."
+    },
+    {
+      "name": "handle_click(self, event)",
+      "explanation": "Handles mouse click events to make a move."
+    },
+    {
+      "name": "is_valid_move(self, col)",
+      "explanation": "Checks if a move in the specified column is valid (i.e., not full)."
+    },
+    {
+      "name": "get_next_open_row(self, col)",
+      "explanation": "Finds the next open row in the specified column."
+    },
+    {
+      "name": "drop_piece(self, row, col)",
+      "explanation": "Places the current player's piece in the specified cell."
+    },
+    {
+      "name": "draw_piece(self, row, col)",
+      "explanation": "Draws a piece on the board at the specified row and column."
+    },
+    {
+      "name": "switch_turn(self)",
+      "explanation": "Switches the turn to the next player."
+    },
+    {
+      "name": "check_for_win(self)",
+      "explanation": "Checks if there is a winning condition on the board."
+    },
+    {
+      "name": "check_horizontal(self)",
+      "explanation": "Checks for a horizontal win condition."
+    },
+    {
+      "name": "check_vertical(self)",
+      "explanation": "Checks for a vertical win condition."
+    },
+    {
+      "name": "check_diagonal(self)",
+      "explanation": "Checks for a diagonal win condition."
+    },
+    {
+      "name": "check_for_draw(self)",
+      "explanation": "Checks if the game is a draw (board is full without a winner)."
+    },
+    {
+      "name": "end_game(self, message)",
+      "explanation": "Ends the game and displays a message to the players."
+    },
+    {
+      "name": "restart_game(self)",
+      "explanation": "Restarts the game by resetting the board and other variables."
+    }
+  ],
+  "CurrentGame": {
+    "name": "Connect 4",
+    "course": "Software Engineering",
+    "description": "A classic Connect 4 game implementation with basic functionalities.",
+    "steps": [
+      {
+        "index": 1,
+        "name": "Creating and Drawing the Board",
+        "description": "Initiate a 6x8 Tetris board and display it.",
+        "requirements": [
+          "Render the game board (6 rows by 7 columns).",
+          "Initialize the board with empty cells when the game starts."
+        ]
+      },
+      {
+        "index": 2,
+        "name": "Handling Game Turns and Moves",
+        "description": "Initialize and display different Tetris pieces over the board.",
+        "requirements": [
+          "Highlight the column under the mouse cursor if it's not full.",
+          "Handle mouse clicks to make a move (drop a piece in the column) if the selected column is not full.",
+          "Display the corresponding message (e.g., X's turn), and start with X's turn first.",
+          "Update the board with the current player's move and switch turns (X to O or O to X)."
+        ]
+      },
+      {
+        "index": 3,
+        "name": "Checking for Game Over",
+        "description": "Allow a piece to move left, right, down, and hard drop in response to keyboard inputs. Pieces cannot be moved upwards",
+        "requirements": [
+          "Check for a win by identifying four in a row in any direction (horizontal, vertical, or diagonal).",
+          "If there is a winner, display a message and draw a line through the winning cells.",
+          "If the board is full without a winner, display a tie game message."
+        ]
+      },
+      {
+        "index": 4,
+        "name": "Restarting the Game",
+        "description": "Allow a piece to rotate when the up arrow key is pressed.",
+        "requirements": [
+          "Display a message if the game is over, with instructions to restart.",
+          "Handle key press 'r' to restart the game and reinitialize the board."
+        ]
+      }
+    ]
+  }
+}

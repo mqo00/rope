@@ -1,0 +1,265 @@
+{
+  "gameTitle": "Tetris",
+  "baseExplanations": [
+    {
+      "name": "board",
+      "explanation": "The Tetris game board/grid, with each cell being either a part of a tetris piece or empty space."
+    },
+    {
+      "name": "piece",
+      "explanation": "The Tetris piece of seven different shapes (i.e., I, J, L, O, S, T, and Z) composed of four cells."
+    },
+    {
+      "name": "hard drop",
+      "explanation": "The action of instantly dropping a piece to the lowest position on the board and locking it in place."
+    },
+    {
+      "name": "app.pieceTopRow",
+      "explanation": "The top row position of the currently active Tetris piece."
+    },
+    {
+      "name": "app.pieceLeftCol",
+      "explanation": "The left column position of the currently active Tetris piece."
+    },
+    {
+      "name": "app.tetrisPieces",
+      "explanation": "A list containing the shapes of all possible Tetris pieces."
+    },
+    {
+      "name": "app.tetrisPieceColors",
+      "explanation": "A list containing the colors corresponding to each Tetris piece."
+    },
+    {
+      "name": "app.pieceColor",
+      "explanation": "The color of the currently active Tetris piece."
+    },
+    {
+      "name": "app.nextPieceIndex",
+      "explanation": "The index of the next Tetris piece to be loaded."
+    },
+
+    {
+      "name": "pieceTopRow",
+      "explanation": "The top row position of the currently active Tetris piece."
+    },
+    {
+      "name": "pieceLeftCol",
+      "explanation": "The left column position of the currently active Tetris piece."
+    },
+    {
+      "name": "tetrisPieces",
+      "explanation": "A list containing the shapes of all possible Tetris pieces."
+    },
+    {
+      "name": "tetrisPieceColors",
+      "explanation": "A list containing the colors corresponding to each Tetris piece."
+    },
+    {
+      "name": "pieceColor",
+      "explanation": "The color of the currently active Tetris piece."
+    },
+    {
+      "name": "nextPieceIndex",
+      "explanation": "The index of the next Tetris piece to be loaded."
+    },
+
+    {
+      "name": "onAppStart(app)",
+      "explanation": "Initializes the game state and sets up the board when the app starts."
+    },
+    {
+      "name": "drawCell(app, row, col, color)",
+      "explanation": "Draws a single cell on the board at the specified row and column with the given color."
+    },
+    {
+      "name": "drawBoard(app)",
+      "explanation": "Draws the entire Tetris game board."
+    },
+
+    {
+      "name": "loadTetrisPieces(app)",
+      "explanation": "Loads all the possible Tetris pieces into the app's state."
+    },
+    {
+      "name": "loadPiece(app, pieceIndex)",
+      "explanation": "Loads a specific Tetris piece based on the given index."
+    },
+    {
+      "name": "onKeyPress(app, key)",
+      "explanation": "Handles keyboard input for controlling the game."
+    },
+    {
+      "name": "drawPiece(app)",
+      "explanation": "Draws the currently active Tetris piece on the board."
+    },
+    {
+      "name": "movePiece(app, drow, dcol)",
+      "explanation": "Moves the currently active piece by the specified row and column offsets."
+    },
+    {
+      "name": "pieceIsLegal(app)",
+      "explanation": "Checks if the current position of the active piece is valid."
+    },
+    {
+      "name": "rotate2dListClockwise(L)",
+      "explanation": "Rotates a 2D list (representing a piece) clockwise."
+    },
+    {
+      "name": "rotatePieceClockwise(app)",
+      "explanation": "Rotates the currently active piece clockwise."
+    },
+    {
+      "name": "takeStep(app)",
+      "explanation": "Advances the game state by one step, usually moving the active piece down."
+    },
+    {
+      "name": "placePieceOnBoard(app)",
+      "explanation": "Places the currently active piece on the board."
+    },
+    {
+      "name": "loadNextPiece(app)",
+      "explanation": "Loads the next Tetris piece to be played."
+    },
+    {
+      "name": "removeFullRows(app)",
+      "explanation": "Removes any full rows from the board and updates the score."
+    },
+    {
+      "name": "loadTestBoard(app, key)",
+      "explanation": "Loads a test board configuration, typically for debugging purposes."
+    },
+    {
+      "name": "onAppStart",
+      "explanation": "Initializes the game state and sets up the board when the app starts."
+    },
+    {
+      "name": "drawCell",
+      "explanation": "Draws a single cell on the board at the specified row and column with the given color."
+    },
+    {
+      "name": "drawBoard",
+      "explanation": "Draws the entire Tetris game board."
+    },
+    {
+      "name": "loadTetrisPieces",
+      "explanation": "Loads all the possible Tetris pieces into the app's state."
+    },
+    {
+      "name": "loadPiece",
+      "explanation": "Loads a specific Tetris piece based on the given index."
+    },
+    {
+      "name": "onKeyPress",
+      "explanation": "Handles keyboard input for controlling the game."
+    },
+    {
+      "name": "drawPiece",
+      "explanation": "Draws the currently active Tetris piece on the board."
+    },
+    {
+      "name": "movePiece",
+      "explanation": "Moves the currently active piece by the specified row and column offsets."
+    },
+    {
+      "name": "pieceIsLegal",
+      "explanation": "Checks if the current position of the active piece is valid."
+    },
+    {
+      "name": "rotate2dListClockwise",
+      "explanation": "Rotates a 2D list (representing a piece) clockwise."
+    },
+    {
+      "name": "rotatePieceClockwise",
+      "explanation": "Rotates the currently active piece clockwise."
+    },
+    {
+      "name": "takeStep",
+      "explanation": "Advances the game state by one step, usually moving the active piece down."
+    },
+    {
+      "name": "placePieceOnBoard",
+      "explanation": "Places the currently active piece on the board."
+    },
+    {
+      "name": "loadNextPiece",
+      "explanation": "Loads the next Tetris piece to be played."
+    },
+    {
+      "name": "removeFullRows",
+      "explanation": "Removes any full rows from the board and updates the score."
+    },
+    {
+      "name": "loadTestBoard",
+      "explanation": "Loads a test board configuration, typically for debugging purposes."
+    }
+  ],
+  "CurrentGame": {
+    "name": "Tetris",
+    "course": "Software Engineering",
+    "description": "A classic Tetris game with some basic and customized functionalities.",
+    "steps": [
+      {
+        "index": 1,
+        "name": "Creating and Drawing the Board",
+        "description": "Initiate a 8x6 Tetris board and display it.",
+        "requirements": [
+          "Render the game board (8 rows by 6 columns)",
+          "Render a title 'Tetris' on top of the board.",
+          "Initialize the board with empty cells when the game starts."
+        ]
+      },
+      {
+        "index": 2,
+        "name": "Creating and Drawing the Pieces",
+        "description": "Initialize and display different Tetris pieces over the board.",
+        "requirements": [
+          "Define all 7 Tetris piece shapes and their corresponding colors: red I, yellow J, magenta L, pink O, blue S, green T, and orange Z.",
+          "Use the number key 0 to 6 to load different Tetris pieces at the top center of the board; for example, an 'I' shape piece is red and corresponds to the number key 0."
+        ]
+      },
+      {
+        "index": 3,
+        "name": "Moving the Piece",
+        "description": "Allow a piece to move left, right, down, and hard drop in response to the corresponding arrow keys and space key. Pieces cannot be moved upwards.",
+        "requirements": [
+          "Move the piece left, right, or down based on corresponding arrow keyboard inputs.",
+          "Hard drop the piece to the bottom when pressing the space key.",
+          "Ensure the new position of the piece is within the board boundaries.",
+          "Ensure the new position of the piece does not overlap existing pieces."
+        ]
+      },
+      {
+        "index": 4,
+        "name": "Rotating the Piece",
+        "description": "Allow a piece to rotate when the up arrow key is pressed.",
+        "requirements": [
+          "Rotate the piece clockwise when the up arrow key is pressed.",
+          "Ensure the rotated position is within the board boundaries.",
+          "Ensure the new position of the piece does not overlap existing pieces."
+        ]
+      },
+      {
+        "index": 5,
+        "name": "Dropping and Placing the Piece",
+        "description": "Automatically drop the piece, stack the piece at the bottom of the board, and create a new piece. Ensure the piece does not overlap existing ones.",
+        "requirements": [
+          "Automatically move the piece down at regular intervals.",
+          "Put the piece on the board when it can no longer move down (overlap existing pieces or hitting board bottom boundary).",
+          "Spawn a new piece once the current piece is placed.",
+          "Spawn new pieces following a fixed order; for example, a yellow 'J' piece always occurs after a red 'I' piece."
+        ]
+      },
+      {
+        "index": 6,
+        "name": "Removing Full Rows and End Game",
+        "description": "Remove any fully filled rows from the board, add new empty rows at the top, and implement the end game if pieces are stacked to the top.",
+        "requirements": [
+          "Identify and remove all fully filled rows.",
+          "Add new empty rows at the top to maintain the board's height.",
+          "End the game if new pieces cannot be placed legally due to existing pieces reaching the top.",
+          "Display a 'Game Over' message when the game ends."
+        ]
+      }
+    ]
+  }
+}

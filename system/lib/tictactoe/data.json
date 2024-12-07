@@ -1,0 +1,179 @@
+{
+  "gameTitle": "TicTacToe",
+  "baseExplanations": [
+    {
+      "name": "cols",
+      "explanation": "The number of columns in the Tic-Tac-Toe board."
+    },
+    {
+      "name": "rows",
+      "explanation": "The number of rows in the Tic-Tac-Toe board."
+    },
+    {
+      "name": "boardLeft",
+      "explanation": "The left position of the board on the canvas."
+    },
+    {
+      "name": "boardTop",
+      "explanation": "The top position of the board on the canvas."
+    },
+    {
+      "name": "boardWidth",
+      "explanation": "The total width of the Tic-Tac-Toe board."
+    },
+    {
+      "name": "boardHeight",
+      "explanation": "The total height of the Tic-Tac-Toe board."
+    },
+    {
+      "name": "cellBorderWidth",
+      "explanation": "The width of the border for each cell on the board."
+    },
+    {
+      "name": "selection",
+      "explanation": "The currently selected cell, highlighted during mouse movement."
+    },
+    {
+      "name": "turn",
+      "explanation": "Tracks the current player's turn, either 'Red' or 'Blue'."
+    },
+    {
+      "name": "message",
+      "explanation": "The message displayed to players, indicating whose turn it is or the game result."
+    },
+    {
+      "name": "turnCount",
+      "explanation": "Tracks the number of moves made, used to check for a tie game."
+    },
+    {
+      "name": "gameOver",
+      "explanation": "Indicates whether the game is over."
+    },
+    {
+      "name": "winningCells",
+      "explanation": "Stores the cells that form the winning line when a player wins."
+    },
+    {
+      "name": "onAppStart",
+      "explanation": "Initializes the game state and sets up the board when the app starts."
+    },
+    {
+      "name": "resetApp",
+      "explanation": "Resets the game state, including the board, turn, and gameOver status."
+    },
+    {
+      "name": "redrawAll",
+      "explanation": "Redraws the entire board, messages, and other visual elements on the canvas."
+    },
+    {
+      "name": "drawAppMessage",
+      "explanation": "Draws the current game message at the top of the canvas."
+    },
+    {
+      "name": "drawBoard",
+      "explanation": "Draws the entire Tic-Tac-Toe board by iterating over each cell."
+    },
+    {
+      "name": "drawBoardBorder",
+      "explanation": "Draws the border of the Tic-Tac-Toe board."
+    },
+    {
+      "name": "drawCell",
+      "explanation": "Draws a single cell on the board at the specified row and column."
+    },
+    {
+      "name": "getCellLeftTop",
+      "explanation": "Calculates the top-left corner position of a specific cell on the board."
+    },
+    {
+      "name": "getCellSize",
+      "explanation": "Calculates the width and height of each cell on the board."
+    },
+    {
+      "name": "onMousePress",
+      "explanation": "Handles mouse click events to make moves on the board."
+    },
+    {
+      "name": "onMouseMove",
+      "explanation": "Handles mouse movement events to highlight the cell under the cursor."
+    },
+    {
+      "name": "makeMove",
+      "explanation": "Makes a move for the current player at the specified row and column."
+    },
+    {
+      "name": "changeTurns",
+      "explanation": "Switches the turn from 'X' to 'O' or 'O' to 'X' and updates the message."
+    },
+    {
+      "name": "getCell",
+      "explanation": "Determines the cell at the given x and y coordinates on the canvas."
+    },
+    {
+      "name": "checkForGameOver",
+      "explanation": "Checks if the game is over by determining if there's a winner or a tie."
+    },
+    {
+      "name": "checkForWin",
+      "explanation": "Checks for a winning line starting from a specific cell in a specified direction."
+    },
+    {
+      "name": "drawWinningLine",
+      "explanation": "Draws a line through the winning cells if there is a winner."
+    },
+    {
+      "name": "getCellCenter",
+      "explanation": "Calculates the center position of a specific cell on the board."
+    },
+    {
+      "name": "onKeyPress",
+      "explanation": "Handles key press events to restart the game if it's over."
+    }
+  ],
+  "CurrentGame": {
+    "name": "TicTacToe",
+    "course": "Software Engineering",
+    "description": "A classic TicTacToe game implementation with basic functionalities.",
+    "steps": [
+      {
+        "index": 1,
+        "name": "Creating and Drawing the Board",
+        "description": "Initialize a 3x3 Tic Tac Toe board and render it on the screen.",
+        "requirements": [
+          "Render the game board (3 rows by 3 columns).",
+          "Initialize the board with empty cells when the game starts."
+        ]
+      },
+      {
+        "index": 2,
+        "name": "Handling Game Turns and Moves",
+        "description": "Manage player turns and handle moves on the Tic Tac Toe board.",
+        "requirements": [
+          "Highlight the cell under the mouse cursor if it's empty.",
+          "Handle mouse clicks to make a move (put a red solid circle or a blue solid circle on the board) if the selected cell is empty.",
+          "Display the corresponding message (e.g., Red's turn), and start with Red's turn first.",
+          "Update the board with the current player's move and switch turns (Red to Blue or Blue to Red)."
+        ]
+      },
+      {
+        "index": 3,
+        "name": "Checking for Game Over",
+        "description": "Check for winning conditions or a tie after each move.",
+        "requirements": [
+          "Check for a win by identifying three in a row in any direction (horizontal, vertical, or diagonal).",
+          "If there is a winner, display a message and draw a line through the winning cells.",
+          "If the board is full without a winner, display a tie game message."
+        ]
+      },
+      {
+        "index": 4,
+        "name": "Restarting the Game",
+        "description": "Implement the ability to restart the Tic Tac Toe game after it ends.",
+        "requirements": [
+          "Display a message if the game is over, with instructions to restart.",
+          "Handle key press 'r' to restart the game and reinitialize the board."
+        ]
+      }
+    ]
+  }
+}
