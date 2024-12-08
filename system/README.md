@@ -2,6 +2,8 @@
 
 This repository contains the code for the ROPE Training System. Follow the instructions below to set up, run, and manage the system.
 
+Video Demo for the training system: https://youtu.be/oJq2DYvw8l0
+
 ---
 
 ## Installation and Running the System
