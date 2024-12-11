@@ -1,5 +1,14 @@
 # What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use
 
+
+![ROPE Training and Assessment Illustration](study_material/image.png)
+
+- (A) Our ROPE training help learners write effective prompt programs by providing deliberate practice in adding and clarifying requirements, with various automated feedback. 
+- (B) We assess learners' prompt quality on both requirement quality and LLM output quality in a pre-post randomized experimental design. 
+- (C) In pre-post assessments, learners write prompt programs to create customized LLM applications (e.g. Trip Advisor in D through a prompt in E).
+- We observe that ROPE training significantly improves novices' prompt quality, compared to traditional prompt engineering training. 
+
+
 **Content Directory**
 ```
 ├── README.md
