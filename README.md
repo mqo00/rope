@@ -1,5 +1,4 @@
-# What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use
-
+# What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use [(Paper)](https://arxiv.org/abs/2409.08775)
 
 ![ROPE Training and Assessment Illustration](study_material/image.png)
 
