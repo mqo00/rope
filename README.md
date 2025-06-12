@@ -1,5 +1,7 @@
 # What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use [(Paper)](https://arxiv.org/abs/2409.08775)
 
+TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-training)
+
 ![ROPE Training and Assessment Illustration](study_material/image.png)
 
 - (A) Our ROPE training help learners write effective prompt programs by providing deliberate practice in adding and clarifying requirements, with various automated feedback. 
