@@ -1,4 +1,4 @@
-# What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use [(Paper)](https://arxiv.org/abs/2409.08775)
+# What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use [(Paper)](https://dl.acm.org/doi/10.1145/3731756) [(Arxiv)](https://arxiv.org/abs/2409.08775)
 
 TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-training)
 
@@ -36,3 +36,26 @@ TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-t
 `prompts.md`: prompts used in the system to generate chat-based feedback, requirement document updates, and code counterfactual.
 
 Video Demo for the training system: https://youtu.be/oJq2DYvw8l0
+
+## Citation:
+Ma, Q., Peng, W., Yang, C., Shen, H., Koedinger, K., & Wu, T. (2025). What should we engineer in prompts? training humans in requirement-driven llm use. ACM Transactions on Computer-Human Interaction, 32(4), 1-27. [https://dl.acm.org/doi/10.1145/3731756](https://dl.acm.org/doi/10.1145/3731756)
+```
+@article{10.1145/3731756,
+author = {Ma, Qianou and Peng, Weirui and Yang, Chenyang and Shen, Hua and Koedinger, Ken and Wu, Tongshuang},
+title = {What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use},
+year = {2025},
+issue_date = {August 2025},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {32},
+number = {4},
+issn = {1073-0516},
+url = {https://doi.org/10.1145/3731756},
+doi = {10.1145/3731756},
+journal = {ACM Trans. Comput.-Hum. Interact.},
+month = aug,
+articleno = {41},
+numpages = {27},
+keywords = {LLM, Human-AI Interaction, Prompt Engineering, Requirement Engineering, End-User Programming}
+}
+```
