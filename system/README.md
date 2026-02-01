@@ -16,10 +16,20 @@ Video Demo for the training system: https://youtu.be/oJq2DYvw8l0
    npm install
 3. Make a .env file and save your API keys and database credentials 
    ```.env
-    OPENAI_API_KEY = ""
+    OPENAI_API_KEY=
     MONGODB_URI=
+    APP_PASSWORD=
    ```
-3. Start the development server:
+   > **Note:** For detailed MongoDB Atlas setup instructions (creating a free cluster, getting your connection string, and accessing/exporting data), see [MONGODB_SETUP.md](./MONGODB_SETUP.md).
+
+| Variable | Description |
+|----------|-------------|
+| `MONGODB_URI` | Your MongoDB Atlas connection string with credentials |
+| `APP_PASSWORD` | Password for the app's upload protection (set to anything you want). This is what you enter when prompted "please input the password to update view doc" during Add Game, which is NOT the `<password>` in MONGODB_URI |
+| `OPENAI_API_KEY` | An OpenAI API key is needed to interact with the LLM chatbot |
+
+
+4. Start the development server:
    ```bash
    npm run dev
 Open your browser and access the application at: http://localhost:3333
@@ -38,7 +48,7 @@ To change the game in the ROPE Training System:
 
 ---
 
-#### Adding a Game
+### Adding a Game
 
 To add a new game:
 
@@ -52,6 +62,8 @@ To add a new game:
    - `system/lib/connect4/data.json` (Game Data)
 
 These example files serve as templates to help you create your own games.
+
+> **Note:** the Tetris game is automatically loaded, while tictactoe and connect4 may be manually added using the above steps.
 
 ---
 

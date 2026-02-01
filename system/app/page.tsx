@@ -128,7 +128,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
         }`,
       },
     ],
@@ -386,6 +386,15 @@ export default function Page() {
     }
   }, [chatPromptProps]);
 
+  // Update currentGameObj with currentStepIndex and stage for click logging
+  useEffect(() => {
+    setCurrentGameObj((prev) => ({
+      ...prev,
+      currentStep: currentStepIndex,
+      stage: stage
+    }));
+  }, [currentStepIndex, stage]);
+
   const onStepsGenerate = (item, index, gameDocsI) => {
     // setCurrentStepIndex(index)
     setChatType("stepsGenerate");
@@ -547,7 +556,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
         }`,
       },
     ]);
@@ -613,44 +622,75 @@ export default function Page() {
   };
   
   const handleChange = (event) => {
-    setSelectGameIndex(event.target.value);
-    localStorage.setItem("selectGameIndex", event.target.value);
+    const newGameIndex = event.target.value;
+    const newGame = CurrGameDocList[newGameIndex];
+    const oldGameTitle = currentGameObj.gameTitle;
+    
+    // Save current game's messages before switching
+    if (oldGameTitle) {
+      const allMessages = [...historyMessages, ...messages];
+      localStorage.setItem(`messages_${oldGameTitle}`, JSON.stringify(allMessages));
+      localStorage.setItem(`chatType_${oldGameTitle}`, chatType);
+      localStorage.setItem(`stage_${oldGameTitle}`, String(stage));
+      localStorage.setItem(`gameDocs_${oldGameTitle}`, JSON.stringify(gameDocs));
+    }
+    
+    setSelectGameIndex(newGameIndex);
+    localStorage.setItem("selectGameIndex", newGameIndex);
     setOpen(false);
-    localStorage.setItem("uuid", uuidv4());
-    setHistoryMessages([]);
-    setChatType("outline");
+    
+    // Try to load saved messages for the new game
+    const savedMessages = localStorage.getItem(`messages_${newGame.gameTitle}`);
+    const savedChatType = localStorage.getItem(`chatType_${newGame.gameTitle}`);
+    const savedStage = localStorage.getItem(`stage_${newGame.gameTitle}`);
+    const savedGameDocs = localStorage.getItem(`gameDocs_${newGame.gameTitle}`);
+    
+    if (savedMessages && JSON.parse(savedMessages).length > 0) {
+      // Restore saved state for this game
+      const parsedMessages = JSON.parse(savedMessages);
+      setHistoryMessages(parsedMessages.slice(0, -1)); // All but last as history
+      setMessages(parsedMessages.slice(-1)); // Last message as current
+      setChatType((savedChatType || "outline") as PromptType);
+      setStage(savedStage ? Number(savedStage) : 1);
+      if (savedGameDocs) {
+        setGameDocs(JSON.parse(savedGameDocs));
+      }
+    } else {
+      // Fresh start for this game
+      localStorage.setItem("uuid", uuidv4());
+      setHistoryMessages([]);
+      setChatType("outline");
+      setStage(1);
+      setMessages([
+        {
+          role: "assistant",
+          content: `{
+            chatContent: "Hi there! Can you try to enumerate the main steps for creating ${
+              newGame.gameTitle
+            }, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
+            \nCheck out the solution on the right to get a sense of how ${
+              newGame.gameTitle
+            } works. You may need to click on the canvas first before key presses."
+          }`,
+        },
+      ]);
+      setGameDocs(
+        JSON.parse(
+          JSON.stringify(
+            convertGame2Doc(newGame.CurrentGame)
+          )
+        )
+      );
+    }
+    
     setChatPromptProps({});
     setIframeContent("");
-
-    setMessages([
-      {
-        role: "assistant",
-        content: `{
-          chatContent: "Hi there! Can you try to enumerate the main steps for creating ${
-            CurrGameDocList[event.target.value].gameTitle
-          }, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${
-            CurrGameDocList[event.target.value].gameTitle
-          } works."
-        }`,
-      },
-    ]);
-
-    setGameDocs(
-      JSON.parse(
-        JSON.stringify(
-          convertGame2Doc(CurrGameDocList[event.target.value].CurrentGame)
-        )
-      )
-    );
     setCurrentGameObj({
-      gameTitle: CurrGameDocList[event.target.value].gameTitle,
-      baseExplanations: CurrGameDocList[event.target.value].baseExplanations,
-      CurrentGame: CurrGameDocList[event.target.value].CurrentGame,
-      gameStepsCodes: CurrGameDocList[event.target.value].gameStepsCodes,
-      CurrGameDoc: convertGame2Doc(
-        CurrGameDocList[event.target.value].CurrentGame
-      ),
+      gameTitle: newGame.gameTitle,
+      baseExplanations: newGame.baseExplanations,
+      CurrentGame: newGame.CurrentGame,
+      gameStepsCodes: newGame.gameStepsCodes,
+      CurrGameDoc: convertGame2Doc(newGame.CurrentGame),
     });
   };
 
@@ -722,77 +762,157 @@ export default function Page() {
     }
     console.log("uploadGameObj", uploadGameObj);
     console.log("uploadGameCode", uploadGameCode);
-    const password = prompt("please input the password to update view doc");
-    if (!password) return alert("please input the password");
-    if (uploading) return;
-    setUploading(true);
-    const res = await fetch("/api/data", {
+    
+    // Password protection
+    const password = prompt("Please input the password to add game");
+    if (!password) return alert("Please input the password");
+    
+    // Verify password via API (include username for per-user database)
+    const username = localStorage.getItem("username");
+    const verifyRes = await fetch("/api/data", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         gameName: uploadGameObj.gameTitle,
         baseExplanations: uploadGameObj.baseExplanations,
         gameDoc: uploadGameObj.CurrentGame,
         gameStepsCodes: uploadGameCode,
         password,
+        username,
       }),
     });
-    setUploading(false);
-    const data = await res.json();
-    if (data.success) {
-      fetchGameList();
-      setOpen2(false);
-    } else {
-      alert("your password is incorrect");
+    const verifyData = await verifyRes.json();
+    
+    if (!verifyData.success) {
+      return alert("Your password is incorrect");
     }
+    
+    // Add game to local state
+    const newGame = {
+      gameTitle: uploadGameObj.gameTitle,
+      baseExplanations: uploadGameObj.baseExplanations,
+      CurrentGame: uploadGameObj.CurrentGame,
+      gameStepsCodes: uploadGameCode,
+    };
+    
+    // Check if game already exists
+    const existingIndex = CurrGameDocList.findIndex(
+      (g) => g.gameTitle?.toLowerCase() === newGame.gameTitle?.toLowerCase()
+    );
+    
+    if (existingIndex !== -1) {
+      // Update existing game
+      const updatedList = [...CurrGameDocList];
+      updatedList[existingIndex] = newGame;
+      setCurrGameDocList(updatedList);
+    } else {
+      // Add new game
+      setCurrGameDocList([...CurrGameDocList, newGame]);
+    }
+    
+    setOpen2(false);
+    alert(`Game "${newGame.gameTitle}" added successfully!`);
   };
 
   const handleDeleteGame = async (event) => {
     event.preventDefault();
     event.stopPropagation();
-    if(selectGameIndex2 == selectGameIndex) return alert("you can't delete the current game, please change the game first and try again!")
-    const password = prompt("please input the password to delete game");
-    if (!password) return alert("please input the password");
-    if (uploading) return;
-    setUploading(true);
-    const res = await fetch("/api/data", {
+    if (selectGameIndex2 == selectGameIndex) {
+      return alert("You can't delete the current game. Please change the game first and try again!");
+    }
+    
+    const gameToDelete = CurrGameDocList[selectGameIndex2]?.gameTitle;
+    
+    // Password protection
+    const password = prompt("Please input the password to delete game");
+    if (!password) return alert("Please input the password");
+    
+    // Verify password via API (include username for per-user database)
+    const username = localStorage.getItem("username");
+    const verifyRes = await fetch("/api/data", {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        gameName: CurrGameDocList[selectGameIndex2].gameTitle,
+        gameName: gameToDelete,
         password,
+        username,
       }),
     });
-    setUploading(false);
-    const data = await res.json();
-    if (data.success) {
-      fetchGameList();
-      setOpen3(false);
-    } else {
-      alert("your password is incorrect");
+    const verifyData = await verifyRes.json();
+    
+    if (!verifyData.success) {
+      return alert("Your password is incorrect");
     }
+    
+    // Remove game from local state
+    const updatedList = CurrGameDocList.filter((_, index) => index !== Number(selectGameIndex2));
+    setCurrGameDocList(updatedList);
+    
+    // Adjust selectGameIndex if needed
+    if (Number(selectGameIndex) > Number(selectGameIndex2)) {
+      localStorage.setItem("selectGameIndex", String(Number(selectGameIndex) - 1));
+    }
+    
+    setOpen3(false);
+    alert(`Game "${gameToDelete}" deleted!`);
   }
 
   const fetchGameList = async () => {
-    const res = await fetch(`/api/data`, {
-      method: "GET",
-    });
-    const data = await res.json();
-    console.log(data.data);
-    setCurrGameDocList(
-      data.data.map((ele) => {
-        return {
-          gameTitle: ele.gameName,
-          baseExplanations: ele.baseExplanations,
-          CurrentGame: ele.gameDoc,
-          gameStepsCodes: ele.gameStepsCodes,
-        };
-      })
+    // Read directly from localStorage to get existing games
+    let existingGames = [];
+    try {
+      const stored = localStorage.getItem("CurrGameDocList");
+      if (stored) {
+        existingGames = JSON.parse(stored) || [];
+      }
+    } catch (e) {
+      existingGames = [];
+    }
+    
+    // Check if Tetris is already in the list
+    const hasTetris = existingGames.some(
+      (g) => g.gameTitle?.toLowerCase() === "tetris"
     );
+    
+    if (hasTetris && existingGames.length > 0) {
+      // Already have games including Tetris, no need to fetch
+      console.log("Using existing games from localStorage:", existingGames.map(g => g.gameTitle));
+      // Still need to set state from localStorage
+      setCurrGameDocList(existingGames);
+      return;
+    }
+    
+    // Load Tetris from local files
+    const res = await fetch(`/api/localGames?game=Tetris`, { method: "GET" });
+    if (!res.ok) {
+      console.error("Failed to load Tetris");
+      return;
+    }
+    
+    const data = await res.json();
+    const tetrisGame = (data.data || []).map((ele) => ({
+      gameTitle: ele.gameName,
+      baseExplanations: ele.baseExplanations,
+      CurrentGame: ele.gameDoc,
+      gameStepsCodes: ele.gameStepsCodes,
+    }))[0];
+    
+    if (tetrisGame) {
+      // Add Tetris to existing games (or create new list with just Tetris)
+      const newGameList = [...existingGames.filter(g => g.gameTitle?.toLowerCase() !== "tetris"), tetrisGame];
+      console.log("Loaded games:", newGameList.map(g => g.gameTitle));
+      
+      // Find Tetris index and set it as default only if no previous selection
+      const savedIndex = localStorage.getItem("selectGameIndex");
+      if (!savedIndex) {
+        const tetrisIndex = newGameList.findIndex(g => g.gameTitle?.toLowerCase() === "tetris");
+        if (tetrisIndex !== -1) {
+          localStorage.setItem("selectGameIndex", String(tetrisIndex));
+        }
+      }
+      
+      setCurrGameDocList(newGameList);
+    }
   };
 
   return (
@@ -810,6 +930,7 @@ export default function Page() {
               <Button
                 className="p-4 hover:shadow rounded-l-full w-full  -mt-10"
                 onClick={() => reset()}
+                data-button-id="reset-game"
               >
                 Reset
               </Button>
@@ -818,6 +939,7 @@ export default function Page() {
               <Button
                 className="p-4 hover:shadow rounded-l-full mt-2 w-full"
                 onClick={() => showAll()}
+                data-button-id="end-game"
               >
                 End
               </Button>
@@ -826,6 +948,7 @@ export default function Page() {
               <Button
                 className="p-4 hover:shadow rounded-l-full w-full mt-2"
                 onClick={() => handleClickOpen()}
+                data-button-id="change-game"
               >
                 Change Game
               </Button>
@@ -851,12 +974,14 @@ export default function Page() {
                 <Button
                   className="p-4 hover:shadow rounded-l-full rounded-r-full w-full mt-2"
                   onClick={(e) => openDialog2(e)}
+                  data-button-id="add-game"
                 >
                   Add Game
                 </Button>
                 <Button
                   className="p-4 hover:shadow rounded-l-full rounded-r-full w-full mt-2"
                   onClick={(e) => openDialog3(e)}
+                  data-button-id="delete-game"
                 >
                   Delete Game
                 </Button>
@@ -1111,6 +1236,7 @@ const ChatBox = ({
                             onClick={() =>
                               onActionClick(item, message.content.action)
                             }
+                            data-button-id={`action-${item.toLowerCase().replace(/\s+/g, '-')}`}
                           >
                             {item}
                           </div>
@@ -1154,6 +1280,7 @@ const ChatBox = ({
                   <button
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 hover:text-accent-foreground h-10 w-10 absolute right-2 top-1/2 transform -translate-y-1/2"
                     type="submit"
+                    data-button-id="chat-submit"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1268,12 +1395,13 @@ const CodeBox = ({
   const [codeFullScreen, setCodeFullScreen] = useState(false);
   const iframeRef = useRef(null);
   const iframeRef2 = useRef(null);
-  const url = "https://r76jln-pygame.site.laf.dev/";
+  const sandboxSrc = "/sandbox/index.html";
+  const sandboxOrigin = "*"; // Use "*" for same-origin iframe postMessage
 
   useEffect(() => {
     if (!isCodeLoading && iframeContent) {
       console.log("code end");
-      iframeRef.current.contentWindow.postMessage({ type: "RUN_CODE" }, url);
+      iframeRef.current.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
     }
   }, [iframeContent, isCodeLoading]);
 
@@ -1294,8 +1422,8 @@ const CodeBox = ({
     const iframe = iframeRef.current;
     if (iframe) {
       iframe.contentWindow.postMessage(
-        { type: "SET_CODE", code: iframeContent },
-        url
+        { type: "SET_CODE", code: iframeContent, sandboxId: "my-canvas" },
+        sandboxOrigin
       );
     }
   }, [iframeContent]);
@@ -1305,30 +1433,33 @@ const CodeBox = ({
     if (iframeContent) {
       setBack(false);
       setTab("my-canvas");
-      iframe.contentWindow.postMessage({ type: "RUN_CODE" }, url);
+      iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
     }
   }, [count]);
 
   useEffect(() => {
     const iframe = iframeRef2.current;
-    console.log('初始化');
+    console.log('Solution iframe update - game:', currentGameObj.gameTitle);
     
-    if (iframe && currentGameObj.gameStepsCodes.length) {
-      console.log("change");
-      setTimeout(() => {
+    if (iframe && currentGameObj.gameStepsCodes?.length) {
+      console.log("Updating solution canvas with code for:", currentGameObj.gameTitle);
+      // Use shorter delay and send code immediately
+      const timer = setTimeout(() => {
         iframe.contentWindow.postMessage(
           {
             type: "SET_CODE",
             code: currentGameObj.gameStepsCodes[
               currentGameObj.gameStepsCodes.length - 1
-            ],
+            ]
           },
-          url
+          sandboxOrigin
         );
-        iframe.contentWindow.postMessage({ type: "RUN_CODE" }, url);
-      }, 3000);
+        iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+      }, 500);
+      
+      return () => clearTimeout(timer);
     }
-  }, [iframeRef2, currentGameObj.gameStepsCodes]);
+  }, [currentGameObj.gameTitle, currentGameObj.gameStepsCodes]);
 
   const [tab, setTab] = useState("solution");
 
@@ -1342,17 +1473,17 @@ const CodeBox = ({
   };
 
   useEffect(() => {
-    const iframe = document.getElementById(accordionValue);
+    const iframe = document.getElementById(accordionValue) as HTMLIFrameElement;
     const index = gameDocs?.steps?.findIndex(
       (item) => item.name === accordionValue
     );
     if (iframe) {
       iframe.onload = () => {
-        iframe.contentWindow.postMessage(
+        iframe.contentWindow?.postMessage(
           { type: "SET_CODE", code: currentGameObj.gameStepsCodes[index] },
-          url
+          sandboxOrigin
         );
-        iframe.contentWindow.postMessage({ type: "RUN_CODE" }, url);
+        iframe.contentWindow?.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
       };
     }
   }, [accordionValue]);
@@ -1379,25 +1510,31 @@ const CodeBox = ({
       <div className="h-full overflow-scroll">
         <Tabs value={tab} onValueChange={onTabChange}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="my-canvas">My canvas</TabsTrigger>
-            <TabsTrigger value="solution">Solution</TabsTrigger>
+            <TabsTrigger value="my-canvas" data-button-id="tab-my-canvas">My canvas</TabsTrigger>
+            <TabsTrigger value="solution" data-button-id="tab-solution">Solution</TabsTrigger>
           </TabsList>
         </Tabs>
         <iframe
+          key={`my-canvas-${currentGameObj.gameTitle}`}
           className={`${tab === "my-canvas" ? "block" : "hidden"}`}
           ref={iframeRef}
-          src={url}
+          src={`${sandboxSrc}?id=my-canvas`}
           width="100%"
           height="95%"
+          style={{ overflow: "hidden", border: "none" }}
+          scrolling="no"
         ></iframe>
         <iframe
+          key={`solution-${currentGameObj.gameTitle}`}
           className={`${
             tab === "solution" && stage === 1 ? "block" : "hidden"
           }`}
           ref={iframeRef2}
-          src={url}
+          src={`${sandboxSrc}?id=solution`}
           width="100%"
           height="95%"
+          style={{ overflow: "hidden", border: "none" }}
+          scrolling="no"
         ></iframe>
         <div
           className={`px-4 ${
@@ -1422,9 +1559,11 @@ const CodeBox = ({
                 <AccordionContent>
                   <iframe
                     id={item.name}
-                    src="https://r76jln-pygame.site.laf.dev/"
+                    src={`/sandbox/index.html?id=solution-step-${index}`}
                     width="100%"
                     height="700px"
+                    style={{ overflow: "hidden", border: "none" }}
+                    scrolling="no"
                   ></iframe>
                 </AccordionContent>
               </AccordionItem>
@@ -1535,17 +1674,3 @@ const GameDocBox = ({
     </div>
   );
 };
-
-{
-  /* <div className="mt-4">
-{Array.isArray(item.doc) ? (
-  <Button
-    onClick={() => handleAddDoc(item)}
-    className="mt-2 w-full"
-    variant="secondary"
-  >
-    Add new
-  </Button>
-) : null}
-</div> */
-}

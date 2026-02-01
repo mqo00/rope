@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python Game Sandbox</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    html, body {
+      background: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    }
+    #game-container {
+      position: relative;
+    }
+    #game-canvas {
+      border: 1px solid #ccc;
+      background: white;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+    #error-display {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      background: #fee;
+      border: 1px solid #f00;
+      padding: 10px;
+      font-size: 12px;
+      color: #c00;
+      display: none;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+      font-family: monospace;
+    }
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 14px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas" width="500" height="600"></canvas>
+    <div id="error-display"></div>
+    <div id="loading">Loading Python runtime...</div>
+  </div>
+
+  <!-- Skulpt: Python to JavaScript compiler -->
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/skulpt@1.2.0/dist/skulpt-stdlib.js"></script>
+
+  <script>
+    // Global state
+    let currentCode = '';
+    const canvas = document.getElementById('game-canvas');
+    const ctx = canvas.getContext('2d');
+    const errorDisplay = document.getElementById('error-display');
+    const loadingDisplay = document.getElementById('loading');
+
+    // Event handlers storage
+    let mouseClickHandler = null;
+    let mouseMoveHandler = null;
+    let keyPressHandler = null;
+
+    // Canvas bridge functions accessible from Python
+    const canvasBridge = {
+      initCanvas: function(width, height, bg) {
+        canvas.width = width;
+        canvas.height = height;
+        ctx.fillStyle = bg || 'white';
+        ctx.fillRect(0, 0, width, height);
+      },
+      
+      clearCanvas: function(bg) {
+        // Use clearRect which is faster and reduces flicker
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (bg && bg !== 'white' && bg !== '#fff' && bg !== '#ffffff') {
+          ctx.fillStyle = bg;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+      },
+      
+      drawRectangle: function(x1, y1, x2, y2, fill, outline, lineWidth) {
+        const w = x2 - x1;
+        const h = y2 - y1;
+        
+        if (fill && fill !== 'None' && fill !== '' && fill !== null) {
+          ctx.fillStyle = fill;
+          ctx.fillRect(x1, y1, w, h);
+        }
+        
+        if (outline && outline !== 'None' && outline !== '' && outline !== null) {
+          ctx.strokeStyle = outline;
+          ctx.lineWidth = lineWidth || 1;
+          ctx.strokeRect(x1, y1, w, h);
+        }
+      },
+      
+      drawOval: function(x1, y1, x2, y2, fill, outline, lineWidth) {
+        const cx = (x1 + x2) / 2;
+        const cy = (y1 + y2) / 2;
+        const rx = Math.abs(x2 - x1) / 2;
+        const ry = Math.abs(y2 - y1) / 2;
+        
+        ctx.beginPath();
+        ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+        
+        if (fill && fill !== 'None' && fill !== '' && fill !== null) {
+          ctx.fillStyle = fill;
+          ctx.fill();
+        }
+        
+        if (outline && outline !== 'None' && outline !== '' && outline !== null) {
+          ctx.strokeStyle = outline;
+          ctx.lineWidth = lineWidth || 1;
+          ctx.stroke();
+        }
+      },
+      
+      drawText: function(x, y, text, fontFamily, fontSize, fill, anchor) {
+        const fontStr = fontSize + 'px ' + (fontFamily || 'Helvetica');
+        
+        ctx.font = fontStr;
+        ctx.fillStyle = fill || 'black';
+        
+        // Handle anchor
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        if (anchor === 'nw') {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'top';
+        } else if (anchor === 'n') {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+        } else if (anchor === 'ne') {
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'top';
+        } else if (anchor === 'w') {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+        } else if (anchor === 'e') {
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+        } else if (anchor === 'sw') {
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'bottom';
+        } else if (anchor === 's') {
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'bottom';
+        } else if (anchor === 'se') {
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'bottom';
+        }
+        
+        ctx.fillText(text, x, y);
+      },
+      
+      drawLine: function(x1, y1, x2, y2, fill, lineWidth) {
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.strokeStyle = fill || 'black';
+        ctx.lineWidth = lineWidth || 1;
+        ctx.stroke();
+      },
+      
+      bindCanvasClick: function(callback) {
+        mouseClickHandler = callback;
+      },
+      
+      bindCanvasMove: function(callback) {
+        mouseMoveHandler = callback;
+      },
+      
+      bindKeyPress: function(callback) {
+        keyPressHandler = callback;
+      },
+      
+      setTimeout: function(callback, ms) {
+        window.setTimeout(function() {
+          try {
+            Sk.misceval.callsimAsync(null, callback);
+          } catch (err) {
+            console.error('setTimeout callback error:', err);
+          }
+        }, ms);
+      },
+      
+      showAlert: function(message) {
+        alert(message);
+      },
+      
+      showConfirm: function(message) {
+        return confirm(message);
+      }
+    };
+
+    // ============================================
+    // EVENT HANDLING
+    // ============================================
+    
+    // Get sandbox identity from URL parameter (e.g., ?id=my-canvas)
+    const urlParams = new URLSearchParams(window.location.search);
+    let sandboxId = urlParams.get('id') || 'unknown';
+    
+    canvas.addEventListener('click', function(e) {
+      const rect = canvas.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      
+      // Send click event to parent for logging
+      window.parent.postMessage({
+        type: 'CANVAS_CLICK',
+        x: Math.round(x),
+        y: Math.round(y),
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        sandboxId: sandboxId,
+        timestamp: Date.now()
+      }, '*');
+      
+      if (mouseClickHandler) {
+        try {
+          Sk.misceval.callsimAsync(null, mouseClickHandler, Sk.ffi.remapToPy(x), Sk.ffi.remapToPy(y));
+        } catch (err) {
+          console.error('Click handler error:', err);
+        }
+      }
+    });
+
+    canvas.addEventListener('mousemove', function(e) {
+      if (mouseMoveHandler) {
+        const rect = canvas.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        
+        try {
+          Sk.misceval.callsimAsync(null, mouseMoveHandler, Sk.ffi.remapToPy(x), Sk.ffi.remapToPy(y));
+        } catch (err) {
+          console.error('MouseMove handler error:', err);
+        }
+      }
+    });
+
+    document.addEventListener('keydown', function(e) {
+      // Prevent arrow keys and space from scrolling the page
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+      
+      // Map JavaScript key names to Tkinter-style key names
+      const keyMap = {
+        'ArrowLeft': 'Left',
+        'ArrowRight': 'Right',
+        'ArrowUp': 'Up',
+        'ArrowDown': 'Down',
+        ' ': 'space',
+        'Enter': 'Return',
+        'Escape': 'Escape'
+      };
+      const tkKey = keyMap[e.key] || e.key;
+      
+      // Send key press event to parent for logging
+      window.parent.postMessage({
+        type: 'CANVAS_KEYPRESS',
+        key: tkKey,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        sandboxId: sandboxId,
+        timestamp: Date.now()
+      }, '*');
+      
+      if (keyPressHandler) {
+        try {
+          Sk.misceval.callsimAsync(null, keyPressHandler, Sk.ffi.remapToPy(tkKey));
+        } catch (err) {
+          console.error('KeyPress handler error:', err);
+        }
+      }
+    });
+    // ============================================
+    // TKINTER MODULE (as Python code string)
+    // ============================================
+    
+    const tkinterModuleCode = `
+# Minimal tkinter shim for Skulpt
+import js_bridge
+
+LEFT = 'left'
+RIGHT = 'right'
+TOP = 'top'
+BOTTOM = 'bottom'
+
+class Tk:
+    def __init__(self):
+        self._title = "Python App"
+        self._bg = "white"
+        self._key_handler = None
+    
+    def title(self, t):
+        self._title = t
+    
+    def configure(self, **kwargs):
+        if 'bg' in kwargs:
+            self._bg = kwargs['bg']
+    
+    def bind(self, event, callback):
+        if event == '<Key>':
+            def key_wrapper(key):
+                class Event:
+                    def __init__(self, k):
+                        self.char = k
+                        self.keysym = k
+                callback(Event(key))
+            js_bridge.bind_key(key_wrapper)
+    
+    def after(self, ms, callback):
+        js_bridge.set_timeout(callback, ms)
+    
+    def mainloop(self):
+        pass
+
+class Canvas:
+    def __init__(self, parent, **kwargs):
+        self.width = kwargs.get('width', 500)
+        self.height = kwargs.get('height', 600)
+        self.bg = kwargs.get('bg', 'white')
+        self._parent = parent
+        js_bridge.init_canvas(self.width, self.height, self.bg)
+        self._item_counter = 0
+    
+    def pack(self, **kwargs):
+        pass
+    
+    def bind(self, event, callback):
+        if event == '<Button-1>':
+            def click_wrapper(x, y):
+                class Event:
+                    def __init__(self, ex, ey):
+                        self.x = ex
+                        self.y = ey
+                callback(Event(x, y))
+            js_bridge.bind_click(click_wrapper)
+        elif event == '<Motion>':
+            def move_wrapper(x, y):
+                class Event:
+                    def __init__(self, ex, ey):
+                        self.x = ex
+                        self.y = ey
+                callback(Event(x, y))
+            js_bridge.bind_move(move_wrapper)
+    
+    def delete(self, tag):
+        js_bridge.clear_canvas(self.bg)
+    
+    def create_rectangle(self, x1, y1, x2, y2, **kwargs):
+        fill = kwargs.get('fill', None)
+        outline = kwargs.get('outline', 'black')
+        width = kwargs.get('width', 1)
+        js_bridge.draw_rect(x1, y1, x2, y2, fill, outline, width)
+        self._item_counter += 1
+        return self._item_counter
+    
+    def create_oval(self, x1, y1, x2, y2, **kwargs):
+        fill = kwargs.get('fill', None)
+        outline = kwargs.get('outline', 'black')
+        width = kwargs.get('width', 1)
+        js_bridge.draw_oval(x1, y1, x2, y2, fill, outline, width)
+        self._item_counter += 1
+        return self._item_counter
+    
+    def create_text(self, x, y, **kwargs):
+        text = kwargs.get('text', '')
+        font = kwargs.get('font', ('Helvetica', 16))
+        fill = kwargs.get('fill', 'black')
+        anchor = kwargs.get('anchor', 'center')
+        
+        # Parse font
+        if isinstance(font, tuple):
+            font_family = font[0] if len(font) > 0 else 'Helvetica'
+            font_size = font[1] if len(font) > 1 else 16
+        elif isinstance(font, str):
+            parts = font.split()
+            font_family = parts[0] if len(parts) > 0 else 'Helvetica'
+            font_size = int(parts[1]) if len(parts) > 1 else 16
+        else:
+            font_family = 'Helvetica'
+            font_size = 16
+        
+        js_bridge.draw_text(x, y, text, font_family, font_size, fill, anchor)
+        self._item_counter += 1
+        return self._item_counter
+    
+    def create_line(self, x1, y1, x2, y2, **kwargs):
+        fill = kwargs.get('fill', 'black')
+        width = kwargs.get('width', 1)
+        js_bridge.draw_line(x1, y1, x2, y2, fill, width)
+        self._item_counter += 1
+        return self._item_counter
+
+# messagebox module shim
+class messagebox:
+    @staticmethod
+    def showinfo(title, message):
+        js_bridge.show_alert(title + ": " + message)
+    
+    @staticmethod
+    def showwarning(title, message):
+        js_bridge.show_alert("Warning - " + title + ": " + message)
+    
+    @staticmethod
+    def showerror(title, message):
+        js_bridge.show_alert("Error - " + title + ": " + message)
+    
+    @staticmethod
+    def askyesno(title, message):
+        return js_bridge.show_confirm(title + ": " + message)
+    
+    @staticmethod
+    def askokcancel(title, message):
+        return js_bridge.show_confirm(title + ": " + message)
+`;
+
+    // ============================================
+    // JS BRIDGE MODULE (Python code that calls JS)
+    // ============================================
+    
+    const jsBridgeModuleCode = `
+# Bridge to JavaScript canvas functions
+def init_canvas(width, height, bg):
+    __pragma__('js', '{}', '''
+        canvasBridge.initCanvas(width, height, bg);
+    ''')
+
+def clear_canvas(bg):
+    __pragma__('js', '{}', '''
+        canvasBridge.clearCanvas(bg);
+    ''')
+
+def draw_rect(x1, y1, x2, y2, fill, outline, width):
+    __pragma__('js', '{}', '''
+        canvasBridge.drawRectangle(x1, y1, x2, y2, fill, outline, width);
+    ''')
+
+def draw_oval(x1, y1, x2, y2, fill, outline, width):
+    __pragma__('js', '{}', '''
+        canvasBridge.drawOval(x1, y1, x2, y2, fill, outline, width);
+    ''')
+
+def draw_text(x, y, text, font_family, font_size, fill, anchor):
+    __pragma__('js', '{}', '''
+        canvasBridge.drawText(x, y, text, font_family, font_size, fill, anchor);
+    ''')
+
+def draw_line(x1, y1, x2, y2, fill, width):
+    __pragma__('js', '{}', '''
+        canvasBridge.drawLine(x1, y1, x2, y2, fill, width);
+    ''')
+
+def bind_click(callback):
+    __pragma__('js', '{}', '''
+        canvasBridge.bindCanvasClick(callback);
+    ''')
+
+def bind_move(callback):
+    __pragma__('js', '{}', '''
+        canvasBridge.bindCanvasMove(callback);
+    ''')
+
+def bind_key(callback):
+    __pragma__('js', '{}', '''
+        canvasBridge.bindKeyPress(callback);
+    ''')
+`;
+
+    // ============================================
+    // SKULPT CONFIGURATION WITH NATIVE JS BRIDGE
+    // ============================================
+    
+    function createJsBridgeModule() {
+      const mod = {};
+      
+      mod.init_canvas = new Sk.builtin.func(function(width, height, bg) {
+        canvasBridge.initCanvas(
+          Sk.ffi.remapToJs(width),
+          Sk.ffi.remapToJs(height),
+          Sk.ffi.remapToJs(bg)
+        );
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.clear_canvas = new Sk.builtin.func(function(bg) {
+        canvasBridge.clearCanvas(Sk.ffi.remapToJs(bg));
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.draw_rect = new Sk.builtin.func(function(x1, y1, x2, y2, fill, outline, width) {
+        canvasBridge.drawRectangle(
+          Sk.ffi.remapToJs(x1),
+          Sk.ffi.remapToJs(y1),
+          Sk.ffi.remapToJs(x2),
+          Sk.ffi.remapToJs(y2),
+          Sk.ffi.remapToJs(fill),
+          Sk.ffi.remapToJs(outline),
+          Sk.ffi.remapToJs(width)
+        );
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.draw_oval = new Sk.builtin.func(function(x1, y1, x2, y2, fill, outline, width) {
+        canvasBridge.drawOval(
+          Sk.ffi.remapToJs(x1),
+          Sk.ffi.remapToJs(y1),
+          Sk.ffi.remapToJs(x2),
+          Sk.ffi.remapToJs(y2),
+          Sk.ffi.remapToJs(fill),
+          Sk.ffi.remapToJs(outline),
+          Sk.ffi.remapToJs(width)
+        );
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.draw_text = new Sk.builtin.func(function(x, y, text, fontFamily, fontSize, fill, anchor) {
+        canvasBridge.drawText(
+          Sk.ffi.remapToJs(x),
+          Sk.ffi.remapToJs(y),
+          Sk.ffi.remapToJs(text),
+          Sk.ffi.remapToJs(fontFamily),
+          Sk.ffi.remapToJs(fontSize),
+          Sk.ffi.remapToJs(fill),
+          Sk.ffi.remapToJs(anchor)
+        );
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.draw_line = new Sk.builtin.func(function(x1, y1, x2, y2, fill, width) {
+        canvasBridge.drawLine(
+          Sk.ffi.remapToJs(x1),
+          Sk.ffi.remapToJs(y1),
+          Sk.ffi.remapToJs(x2),
+          Sk.ffi.remapToJs(y2),
+          Sk.ffi.remapToJs(fill),
+          Sk.ffi.remapToJs(width)
+        );
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.bind_click = new Sk.builtin.func(function(callback) {
+        canvasBridge.bindCanvasClick(callback);
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.bind_move = new Sk.builtin.func(function(callback) {
+        canvasBridge.bindCanvasMove(callback);
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.bind_key = new Sk.builtin.func(function(callback) {
+        canvasBridge.bindKeyPress(callback);
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.set_timeout = new Sk.builtin.func(function(callback, ms) {
+        canvasBridge.setTimeout(callback, Sk.ffi.remapToJs(ms));
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.show_alert = new Sk.builtin.func(function(message) {
+        canvasBridge.showAlert(Sk.ffi.remapToJs(message));
+        return Sk.builtin.none.none$;
+      });
+      
+      mod.show_confirm = new Sk.builtin.func(function(message) {
+        const result = canvasBridge.showConfirm(Sk.ffi.remapToJs(message));
+        return Sk.ffi.remapToPy(result);
+      });
+      
+      return mod;
+    }
+
+    function builtinRead(x) {
+      if (x === './tkinter.py' || x === 'src/lib/tkinter.py' || x === './src/lib/tkinter.py') {
+        return tkinterModuleCode;
+      }
+      
+      if (Sk.builtinFiles === undefined || Sk.builtinFiles["files"][x] === undefined) {
+        throw "File not found: '" + x + "'";
+      }
+      return Sk.builtinFiles["files"][x];
+    }
+
+    function configureSkulpt() {
+      Sk.configure({
+        output: function(text) {
+          console.log('Python output:', text);
+        },
+        read: builtinRead,
+        __future__: Sk.python3,
+        execLimit: null
+      });
+
+      // Register js_bridge as a native module
+      Sk.builtinFiles = Sk.builtinFiles || { files: {} };
+      Sk.builtinFiles.files['src/lib/js_bridge.js'] = 'var $builtinmodule = ' + createJsBridgeModule.toString();
+      
+      // Alternative: directly inject the module
+      const jsBridgeMod = new Sk.builtin.module();
+      jsBridgeMod.$d = createJsBridgeModule();
+      Sk.sysmodules.mp$ass_subscript(new Sk.builtin.str('js_bridge'), jsBridgeMod);
+    }
+
+    // ============================================
+    // CODE EXECUTION
+    // ============================================
+    
+    async function runPythonCode(code) {
+      // Reset event handlers
+      mouseClickHandler = null;
+      mouseMoveHandler = null;
+      keyPressHandler = null;
+      
+      // Clear canvas
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // Hide error display
+      errorDisplay.style.display = 'none';
+      
+      try {
+        configureSkulpt();
+        
+        // Prepend tkinter module code
+        const fullCode = tkinterModuleCode + '\n' + code;
+        
+        await Sk.misceval.asyncToPromise(function() {
+          return Sk.importMainWithBody("<stdin>", false, fullCode, true);
+        });
+        
+      } catch (err) {
+        console.error('Python error:', err);
+        errorDisplay.textContent = err.toString();
+        errorDisplay.style.display = 'block';
+      }
+    }
+
+    // ============================================
+    // POSTMESSAGE API
+    // ============================================
+    
+    window.addEventListener('message', function(event) {
+      const data = event.data;
+      
+      if (data.type === 'SET_CODE') {
+        currentCode = data.code || '';
+        console.log('Code set:', currentCode.substring(0, 100) + '...');
+      }
+      
+      if (data.type === 'RUN_CODE') {
+        console.log('Running code...');
+        runPythonCode(currentCode);
+      }
+    });
+
+    // ============================================
+    // INITIALIZATION
+    // ============================================
+    
+    // Hide loading message once Skulpt is ready
+    if (typeof Sk !== 'undefined') {
+      loadingDisplay.style.display = 'none';
+      console.log('Skulpt sandbox ready');
+      
+      // Notify parent that sandbox is ready
+      window.parent.postMessage({ type: 'SANDBOX_READY' }, '*');
+    } else {
+      loadingDisplay.textContent = 'Error: Skulpt failed to load';
+    }
+  </script>
+</body>
+</html>

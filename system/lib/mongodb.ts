@@ -1,26 +1,29 @@
-// lib/mongodb.js
-
-import { MongoClient,ObjectId } from 'mongodb';
+// lib/mongodb.ts
+import { MongoClient, ObjectId } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
-const options = {
-  useUnifiedTopology: true,
-  useNewUrlParser: true,
+
+if (!uri) {
+  throw new Error('Please add your Mongo URI to .env');
+}
+
+// In development, use global to preserve connection across hot reloads
+const globalWithMongo = global as typeof globalThis & {
+  _mongoClientPromise?: Promise<MongoClient>;
 };
 
-let client;
-let clientPromise;
+let clientPromise: Promise<MongoClient>;
 
-if (!process.env.MONGODB_URI) {
-  throw new Error('Please add your Mongo URI to .env.local');
+if (process.env.NODE_ENV === 'development') {
+  if (!globalWithMongo._mongoClientPromise) {
+    const client = new MongoClient(uri);
+    globalWithMongo._mongoClientPromise = client.connect();
+  }
+  clientPromise = globalWithMongo._mongoClientPromise;
+} else {
+  const client = new MongoClient(uri);
+  clientPromise = client.connect();
 }
 
-client = new MongoClient(uri, options);
-clientPromise = client.connect();
-
-// Export a module-scoped MongoClient promise. By doing this in a
-// separate module, the client can be shared across functions.
 export default clientPromise;
-export {
-  ObjectId
-}
+export { ObjectId };

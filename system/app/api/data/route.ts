@@ -1,81 +1,69 @@
-import clientPromise, { ObjectId } from "@/lib/mongodb";
+import { NextResponse } from "next/server";
+import clientPromise from "@/lib/mongodb";
 
-export async function POST(request) {
-  const { gameName, baseExplanations, gameDoc, gameStepsCodes, password } =
-    await request.json();
+const APP_PASSWORD = process.env.APP_PASSWORD;
 
-  if (password != process.env.PASSWORD) {
-    return new Response(JSON.stringify({ success: false }), {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
-  }
+// Sanitize username to be valid MongoDB database name
+const sanitizeDbName = (name: string | null | undefined): string => {
+  if (!name) return 'anonymous';
+  // Replace invalid characters with underscore, limit length
+  return name.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 64) || 'anonymous';
+};
 
-  const client = await clientPromise;
-  const db = client.db("multipleGame");
-  const collection = db.collection("data");
-  const gameObj = await collection.findOne({ gameName });
-  if (gameObj) {
-    await collection.updateOne(
-      { gameName },
-      { $set: { baseExplanations, gameDoc, gameStepsCodes } }
-    );
-  } else {
-    const result = await collection.insertOne({
-      gameName,
-      baseExplanations,
-      gameDoc,
-      gameStepsCodes,
-    });
-  }
+export async function POST(request: Request) {
+  try {
+    const { gameName, baseExplanations, gameDoc, gameStepsCodes, password, username } = await request.json();
 
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-export async function GET(request) {
-  // let query = request.url.split("?")[1]; // themeId=123&username=123
-  // const params = new URLSearchParams(query);
-  // const roomId = params.get("roomId");
-  const client = await clientPromise;
-  const db = client.db("multipleGame");
-  const collection = db.collection("data");
-  const result = await collection.find().toArray();
-  return new Response(JSON.stringify({ data: result }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
-}
-
-export async function DELETE(request) {
-  const { gameName, password } =
-    await request.json();
-
-    if (password != process.env.PASSWORD) {
-      return new Response(JSON.stringify({ success: false }), {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+    if (password !== APP_PASSWORD) {
+      return NextResponse.json({ success: false, error: "Invalid password" });
     }
 
-  const client = await clientPromise;
-  const db = client.db("multipleGame");
-  const collection = db.collection("data");
-  const result = await collection.deleteOne({gameName});
-  return new Response(JSON.stringify({ success: true }), {
-    status: 200,
-    headers: {
-      "Content-Type": "application/json",
-    },
-  });
+    const dbName = sanitizeDbName(username);
+    const client = await clientPromise;
+    // Use username as database name, "gamedata" as collection
+    const collection = client.db(dbName).collection("gamedata");
+    
+    await collection.updateOne(
+      { gameName },
+      { $set: { gameName, baseExplanations, gameDoc, gameStepsCodes } },
+      { upsert: true }
+    );
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("POST /api/data error:", error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
+}
+
+export async function GET(request: Request) {
+  try {
+    const dbName = sanitizeDbName(new URL(request.url).searchParams.get('username'));
+    const client = await clientPromise;
+    // Use username as database name, "gamedata" as collection
+    const data = await client.db(dbName).collection("gamedata").find().toArray();
+    return NextResponse.json({ data });
+  } catch (error) {
+    console.error("GET /api/data error:", error);
+    return NextResponse.json({ data: [], error: String(error) }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { gameName, password, username } = await request.json();
+
+    if (password !== APP_PASSWORD) {
+      return NextResponse.json({ success: false, error: "Invalid password" });
+    }
+
+    const dbName = sanitizeDbName(username);
+    const client = await clientPromise;
+    await client.db(dbName).collection("gamedata").deleteOne({ gameName });
+    
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/data error:", error);
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
+  }
 }
