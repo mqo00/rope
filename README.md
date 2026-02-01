@@ -1,6 +1,6 @@
 # What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use [(Paper)](https://dl.acm.org/doi/10.1145/3731756) [(Arxiv)](https://arxiv.org/abs/2409.08775)
 
-TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-training)
+TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-training), [New York Times](https://www.nytimes.com/2025/11/12/opinion/ai-coding-computer-science.html?unlocked_article_code=1.0k8.XC9Y.whTHY-2Ecg9i&smid=url-share)
 
 ![ROPE Training and Assessment Illustration](study_material/image.png)
 
