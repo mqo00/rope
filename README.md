@@ -31,16 +31,16 @@ TOCHI 2025. Media Coverage: [SCS News](https://www.cs.cmu.edu/news/2025/prompt-t
 `user_study_prompts.csv`: prompts that users wrote during the pre-post test.
 
 ## system:
-`README.md`: instructions for setting up the system and add new tasks. 
+`README.md`: instructions for setting up the system and adding new tasks. 
 
-`prompts.md`: prompts used in the system to generate chat-based feedback, requirement document updates, and code counterfactual.
+`prompts.md`: prompts used in the system to generate chat-based feedback, requirement document updates, and code counterfactuals.
 
 Video Demo for the training system: https://youtu.be/oJq2DYvw8l0
 
 ## Citation:
 Ma, Q., Peng, W., Yang, C., Shen, H., Koedinger, K., & Wu, T. (2025). What should we engineer in prompts? training humans in requirement-driven llm use. ACM Transactions on Computer-Human Interaction, 32(4), 1-27. [https://dl.acm.org/doi/10.1145/3731756](https://dl.acm.org/doi/10.1145/3731756)
 ```
-@article{10.1145/3731756,
+@article{ma2025rope,
 author = {Ma, Qianou and Peng, Weirui and Yang, Chenyang and Shen, Hua and Koedinger, Ken and Wu, Tongshuang},
 title = {What Should We Engineer in Prompts? Training Humans in Requirement-Driven LLM Use},
 year = {2025},
