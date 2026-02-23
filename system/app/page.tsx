@@ -128,7 +128,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
         }`,
       },
     ],
@@ -204,6 +204,13 @@ export default function Page() {
     e && e.preventDefault();
     if (!input) return;
     if (isLoading) return;
+
+    if (input.trim() === "Next Stage" && stage === 1) {
+      setMessages([...messages, { role: "user", content: input }]);
+      setInput("");
+      nextStep();
+      return;
+    }
 
     const newMessage: Message[] = [
       ...messages,
@@ -556,7 +563,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
         }`,
       },
     ]);
@@ -670,7 +677,7 @@ export default function Page() {
             }, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
             \nCheck out the solution on the right to get a sense of how ${
               newGame.gameTitle
-            } works. You may need to click on the canvas first before key presses."
+            } works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
           }`,
         },
       ]);
@@ -1472,6 +1479,22 @@ const CodeBox = ({
     }
   };
 
+  const replaySolution = () => {
+    const iframe = iframeRef2.current;
+    if (iframe?.contentWindow && currentGameObj?.gameStepsCodes?.length) {
+      iframe.contentWindow.postMessage(
+        {
+          type: "SET_CODE",
+          code: currentGameObj.gameStepsCodes[
+            currentGameObj.gameStepsCodes.length - 1
+          ],
+        },
+        sandboxOrigin
+      );
+      iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+    }
+  };
+
   useEffect(() => {
     const iframe = document.getElementById(accordionValue) as HTMLIFrameElement;
     const index = gameDocs?.steps?.findIndex(
@@ -1509,10 +1532,25 @@ const CodeBox = ({
       )*/}
       <div className="h-full overflow-scroll">
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="my-canvas" data-button-id="tab-my-canvas">My canvas</TabsTrigger>
-            <TabsTrigger value="solution" data-button-id="tab-solution">Solution</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="my-canvas" data-button-id="tab-my-canvas">My canvas</TabsTrigger>
+              <TabsTrigger value="solution" data-button-id="tab-solution">Solution</TabsTrigger>
+            </TabsList>
+            {tab === "solution" && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={replaySolution}
+                onKeyDown={(e) => e.key === " " && e.preventDefault()}
+                tabIndex={-1}
+                data-button-id="replay-solution"
+              >
+                Replay
+              </Button>
+            )}
+          </div>
         </Tabs>
         <iframe
           key={`my-canvas-${currentGameObj.gameTitle}`}
