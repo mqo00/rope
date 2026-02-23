@@ -128,7 +128,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
         }`,
       },
     ],
@@ -204,6 +204,13 @@ export default function Page() {
     e && e.preventDefault();
     if (!input) return;
     if (isLoading) return;
+
+    if (input.trim() === "Next Stage" && stage === 1) {
+      setMessages([...messages, { role: "user", content: input }]);
+      setInput("");
+      nextStep();
+      return;
+    }
 
     const newMessage: Message[] = [
       ...messages,
@@ -556,7 +563,7 @@ export default function Page() {
         role: "assistant",
         content: `{
           chatContent: "Hi there! Can you try to enumerate the main steps for creating ${currentGameObj.gameTitle}, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
-          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. You may need to click on the canvas first before key presses."
+          \nCheck out the solution on the right to get a sense of how ${currentGameObj.gameTitle} works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
         }`,
       },
     ]);
@@ -670,7 +677,7 @@ export default function Page() {
             }, in bullet points of short phrases? Think about the high-level goals you need to achieve! Be concise, we will elaborate on each step later.
             \nCheck out the solution on the right to get a sense of how ${
               newGame.gameTitle
-            } works. You may need to click on the canvas first before key presses."
+            } works. Hint: Try different key presses, including arrows, space, letter, and number keys. You may need to click on the canvas first before key presses."
           }`,
         },
       ]);
@@ -1398,10 +1405,55 @@ const CodeBox = ({
   const sandboxSrc = "/sandbox/index.html";
   const sandboxOrigin = "*"; // Use "*" for same-origin iframe postMessage
 
+  // Refs so SANDBOX_READY listener always has latest code/docs (avoids stale closure)
+  const currentGameObjRef = useRef(currentGameObj);
+  const gameDocsRef = useRef(gameDocs);
+  useEffect(() => {
+    currentGameObjRef.current = currentGameObj;
+    gameDocsRef.current = gameDocs;
+  }, [currentGameObj, gameDocs]);
+
+  // When sandbox posts SANDBOX_READY, send the right code to the right iframe (no cross-iframe mix-up)
+  useEffect(() => {
+    const handler = (event: MessageEvent) => {
+      const data = event.data;
+      if (data?.type !== "SANDBOX_READY" || !data.sandboxId) return;
+
+      if (data.sandboxId === "solution") {
+        const iframe = iframeRef2.current;
+        const code = currentGameObjRef.current?.gameStepsCodes?.length
+          ? currentGameObjRef.current.gameStepsCodes[
+              currentGameObjRef.current.gameStepsCodes.length - 1
+            ]
+          : undefined;
+        if (iframe?.contentWindow && code) {
+          iframe.contentWindow.postMessage({ type: "SET_CODE", code }, sandboxOrigin);
+          iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+        }
+        return;
+      }
+      if (data.sandboxId?.startsWith("solution-step-")) {
+        const stepIndex = parseInt(data.sandboxId.replace("solution-step-", ""), 10);
+        if (Number.isNaN(stepIndex)) return;
+        const docs = gameDocsRef.current;
+        const stepName = docs?.steps?.[stepIndex]?.name;
+        if (!stepName) return;
+        const iframe = document.getElementById(stepName) as HTMLIFrameElement | null;
+        const code = currentGameObjRef.current?.gameStepsCodes?.[stepIndex];
+        if (iframe?.contentWindow && code != null) {
+          iframe.contentWindow.postMessage({ type: "SET_CODE", code }, sandboxOrigin);
+          iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+        }
+      }
+    };
+    window.addEventListener("message", handler);
+    return () => window.removeEventListener("message", handler);
+  }, []);
+
   useEffect(() => {
     if (!isCodeLoading && iframeContent) {
       console.log("code end");
-      iframeRef.current.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+      iframeRef.current?.contentWindow?.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
     }
   }, [iframeContent, isCodeLoading]);
 
@@ -1437,29 +1489,7 @@ const CodeBox = ({
     }
   }, [count]);
 
-  useEffect(() => {
-    const iframe = iframeRef2.current;
-    console.log('Solution iframe update - game:', currentGameObj.gameTitle);
-    
-    if (iframe && currentGameObj.gameStepsCodes?.length) {
-      console.log("Updating solution canvas with code for:", currentGameObj.gameTitle);
-      // Use shorter delay and send code immediately
-      const timer = setTimeout(() => {
-        iframe.contentWindow.postMessage(
-          {
-            type: "SET_CODE",
-            code: currentGameObj.gameStepsCodes[
-              currentGameObj.gameStepsCodes.length - 1
-            ]
-          },
-          sandboxOrigin
-        );
-        iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
-      }, 500);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [currentGameObj.gameTitle, currentGameObj.gameStepsCodes]);
+  // Solution iframe: code is sent when sandbox posts SANDBOX_READY (sandboxId "solution") in the message listener above.
 
   const [tab, setTab] = useState("solution");
 
@@ -1472,21 +1502,46 @@ const CodeBox = ({
     }
   };
 
-  useEffect(() => {
-    const iframe = document.getElementById(accordionValue) as HTMLIFrameElement;
-    const index = gameDocs?.steps?.findIndex(
-      (item) => item.name === accordionValue
-    );
-    if (iframe) {
-      iframe.onload = () => {
-        iframe.contentWindow?.postMessage(
-          { type: "SET_CODE", code: currentGameObj.gameStepsCodes[index] },
-          sandboxOrigin
-        );
-        iframe.contentWindow?.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
-      };
+  const replaySolution = () => {
+    const codes = currentGameObj?.gameStepsCodes;
+    if (!codes?.length) return;
+
+    if (stage === 1) {
+      // Full reload of solution iframe; SANDBOX_READY will trigger SET_CODE + RUN_CODE
+      const iframe = iframeRef2.current;
+      if (iframe) {
+        iframe.src = `${sandboxSrc}?id=solution&t=${Date.now()}`;
+      }
+      return;
     }
-  }, [accordionValue]);
+
+    // Stage !== 1: reload the currently open step's iframe
+    const stepIndex = gameDocs?.steps?.findIndex((s) => s.name === accordionValue);
+    if (stepIndex == null || stepIndex < 0) return;
+    const stepIframe = document.getElementById(accordionValue) as HTMLIFrameElement | null;
+    if (stepIframe) {
+      stepIframe.src = `${sandboxSrc}?id=solution-step-${stepIndex}&t=${Date.now()}`;
+    }
+  };
+
+  // Send code to the current step's iframe when accordion changes (immediate if loaded, else onload)
+  useEffect(() => {
+    const stepIndex = gameDocs?.steps?.findIndex((item) => item.name === accordionValue);
+    if (stepIndex == null || stepIndex < 0) return;
+    const iframe = document.getElementById(accordionValue) as HTMLIFrameElement | null;
+    if (!iframe) return;
+
+    const code = currentGameObj?.gameStepsCodes?.[stepIndex];
+    const sendCode = () => {
+      if (iframe.contentWindow && code != null) {
+        iframe.contentWindow.postMessage({ type: "SET_CODE", code }, sandboxOrigin);
+        iframe.contentWindow.postMessage({ type: "RUN_CODE" }, sandboxOrigin);
+      }
+    };
+
+    sendCode(); // send now if iframe already loaded
+    iframe.onload = sendCode;
+  }, [accordionValue, gameDocs, currentGameObj]);
 
   return (
     <div
@@ -1509,10 +1564,25 @@ const CodeBox = ({
       )*/}
       <div className="h-full overflow-scroll">
         <Tabs value={tab} onValueChange={onTabChange}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="my-canvas" data-button-id="tab-my-canvas">My canvas</TabsTrigger>
-            <TabsTrigger value="solution" data-button-id="tab-solution">Solution</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-2">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="my-canvas" data-button-id="tab-my-canvas">My canvas</TabsTrigger>
+              <TabsTrigger value="solution" data-button-id="tab-solution">Solution</TabsTrigger>
+            </TabsList>
+            {tab === "solution" && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={replaySolution}
+                onKeyDown={(e) => e.key === " " && e.preventDefault()}
+                tabIndex={-1}
+                data-button-id="replay-solution"
+              >
+                Replay
+              </Button>
+            )}
+          </div>
         </Tabs>
         <iframe
           key={`my-canvas-${currentGameObj.gameTitle}`}

@@ -78,6 +78,17 @@
     let mouseMoveHandler = null;
     let keyPressHandler = null;
 
+    // Track all timer IDs created by the bridge (root.after / set_timeout) so we can
+    // clear them at the start of each run and avoid leftover game loops drawing "prior position"
+    const bridgeTimerIds = [];
+
+    function clearAllBridgeTimers() {
+      bridgeTimerIds.forEach(function(id) {
+        clearTimeout(id);
+      });
+      bridgeTimerIds.length = 0;
+    }
+
     // Canvas bridge functions accessible from Python
     const canvasBridge = {
       initCanvas: function(width, height, bg) {
@@ -193,13 +204,15 @@
       },
       
       setTimeout: function(callback, ms) {
-        window.setTimeout(function() {
+        const id = window.setTimeout(function() {
+          bridgeTimerIds.splice(bridgeTimerIds.indexOf(id), 1);
           try {
             Sk.misceval.callsimAsync(null, callback);
           } catch (err) {
             console.error('setTimeout callback error:', err);
           }
         }, ms);
+        bridgeTimerIds.push(id);
       },
       
       showAlert: function(message) {
@@ -630,11 +643,15 @@ def bind_key(callback):
     // ============================================
     
     async function runPythonCode(code) {
+      // Clear all timers from previous run (root.after / set_timeout) so no leftover
+      // game loops keep drawing and cause "pieces on prior position"
+      clearAllBridgeTimers();
+
       // Reset event handlers
       mouseClickHandler = null;
       mouseMoveHandler = null;
       keyPressHandler = null;
-      
+
       // Clear canvas
       ctx.fillStyle = 'white';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -686,8 +703,8 @@ def bind_key(callback):
       loadingDisplay.style.display = 'none';
       console.log('Skulpt sandbox ready');
       
-      // Notify parent that sandbox is ready
-      window.parent.postMessage({ type: 'SANDBOX_READY' }, '*');
+      // Notify parent that sandbox is ready (include sandboxId so parent can target the right iframe)
+      window.parent.postMessage({ type: 'SANDBOX_READY', sandboxId: sandboxId }, '*');
     } else {
       loadingDisplay.textContent = 'Error: Skulpt failed to load';
     }
